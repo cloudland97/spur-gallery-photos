@@ -1,1 +1,10 @@
-﻿{"total":0,"months":[]}
+﻿{
+    "total":  1,
+    "months":  [
+                   {
+                       "id":  "2024-06",
+                       "start":  0,
+                       "count":  1
+                   }
+               ]
+}
