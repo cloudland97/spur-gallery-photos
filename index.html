@@ -1,0 +1,413 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Spur Gallery</title>
+<style>
+  :root {
+    color-scheme: light dark;
+    --bg: #f4f3f1;
+    --fg: #1b1b1b;
+    --muted: #6b6b6b;
+    --card-bg: #ffffff;
+    --border: #e0dfdc;
+    --accent: #7a5cff;
+    --overlay-bg: rgba(10, 10, 12, 0.92);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #14151a;
+      --fg: #ececec;
+      --muted: #9b9b9b;
+      --card-bg: #1d1e24;
+      --border: #2c2d34;
+      --accent: #9b86ff;
+      --overlay-bg: rgba(0, 0, 0, 0.95);
+    }
+  }
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0;
+    padding: 0;
+    background: var(--bg);
+    color: var(--fg);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Malgun Gothic", "Apple SD Gothic Neo", sans-serif;
+    overflow-x: hidden;
+  }
+  header {
+    padding: 2rem 1.25rem 1rem;
+    max-width: 1100px;
+    margin: 0 auto;
+  }
+  header h1 {
+    margin: 0 0 0.4rem;
+    font-size: 1.6rem;
+  }
+  header p {
+    margin: 0.2rem 0;
+    color: var(--muted);
+    font-size: 0.92rem;
+    line-height: 1.5;
+  }
+  #status {
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 0 1.25rem;
+    color: var(--muted);
+    font-size: 0.9rem;
+  }
+  main {
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 0.5rem 1.25rem 3rem;
+  }
+  .month-section {
+    margin-top: 2rem;
+  }
+  .month-section h2 {
+    font-size: 1.05rem;
+    font-weight: 600;
+    color: var(--muted);
+    border-bottom: 1px solid var(--border);
+    padding-bottom: 0.4rem;
+    margin-bottom: 0.8rem;
+  }
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+    gap: 0.5rem;
+    width: 100%;
+  }
+  .thumb {
+    position: relative;
+    display: block;
+    width: 100%;
+    background: var(--card-bg);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    overflow: hidden;
+    cursor: pointer;
+    padding: 0;
+  }
+  .thumb .frame {
+    position: relative;
+    width: 100%;
+    background: var(--border);
+  }
+  .thumb img {
+    display: block;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    position: absolute;
+    inset: 0;
+    opacity: 0;
+    transition: opacity 0.25s ease;
+  }
+  .thumb img.loaded {
+    opacity: 1;
+  }
+  .thumb .date {
+    display: block;
+    font-size: 0.7rem;
+    color: var(--muted);
+    text-align: center;
+    padding: 0.25rem 0.2rem;
+  }
+  footer {
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 1rem 1.25rem 2rem;
+    color: var(--muted);
+    font-size: 0.8rem;
+  }
+
+  /* lightbox */
+  #lightbox {
+    position: fixed;
+    inset: 0;
+    background: var(--overlay-bg);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+    touch-action: none;
+  }
+  #lightbox.open {
+    display: flex;
+  }
+  #lightbox img {
+    max-width: 92vw;
+    max-height: 82vh;
+    object-fit: contain;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+  }
+  #lightbox .caption {
+    position: absolute;
+    bottom: 1.2rem;
+    left: 0;
+    right: 0;
+    text-align: center;
+    color: #ececec;
+    font-size: 0.85rem;
+  }
+  #lightbox .lb-close,
+  #lightbox .lb-prev,
+  #lightbox .lb-next {
+    position: absolute;
+    background: rgba(255, 255, 255, 0.08);
+    color: #fff;
+    border: none;
+    cursor: pointer;
+    font-size: 1.4rem;
+    line-height: 1;
+    padding: 0.6rem 0.9rem;
+    border-radius: 6px;
+  }
+  #lightbox .lb-close:hover,
+  #lightbox .lb-prev:hover,
+  #lightbox .lb-next:hover {
+    background: rgba(255, 255, 255, 0.18);
+  }
+  #lightbox .lb-close {
+    top: 1rem;
+    right: 1rem;
+  }
+  #lightbox .lb-prev {
+    left: 1rem;
+    top: 50%;
+    transform: translateY(-50%);
+  }
+  #lightbox .lb-next {
+    right: 1rem;
+    top: 50%;
+    transform: translateY(-50%);
+  }
+  @media (max-width: 480px) {
+    .grid {
+      grid-template-columns: repeat(auto-fill, minmax(96px, 1fr));
+      gap: 0.35rem;
+    }
+    header { padding: 1.5rem 1rem 0.75rem; }
+    main { padding: 0.5rem 1rem 2rem; }
+  }
+</style>
+</head>
+<body>
+  <header>
+    <h1>Spur Gallery</h1>
+    <p>개인 VRChat 스크린샷 아카이브입니다. 모든 사진은 저장소 소유자가 직접 촬영했으며, 시간순으로 정리되어 있습니다.</p>
+  </header>
+  <div id="status">불러오는 중...</div>
+  <main id="app"></main>
+
+  <div id="lightbox">
+    <button class="lb-close" id="lbClose" aria-label="닫기">&#10005;</button>
+    <button class="lb-prev" id="lbPrev" aria-label="이전">&#10094;</button>
+    <img id="lbImg" src="" alt="">
+    <button class="lb-next" id="lbNext" aria-label="다음">&#10095;</button>
+    <div class="caption" id="lbCaption"></div>
+  </div>
+
+  <footer>
+    <p>사진: CC BY-NC 4.0 &middot; 코드: MIT &middot; <a href="https://github.com/cloudland97/spur-gallery-photos" style="color: inherit;">GitHub</a></p>
+  </footer>
+
+<script>
+(function () {
+  "use strict";
+
+  var STATUS = document.getElementById("status");
+  var APP = document.getElementById("app");
+
+  // photo index (0-based) -> filename "photos/0001.jpg" style (1-based, 4 digits)
+  function photoPath(index) {
+    var num = String(index + 1);
+    while (num.length < 4) { num = "0" + num; }
+    return "photos/" + num + ".jpg";
+  }
+
+  // "24.05.04" -> "2024-05-04" ; "" -> null
+  function formatDate(raw) {
+    if (!raw) { return null; }
+    var parts = raw.split(".");
+    if (parts.length !== 3) { return raw; }
+    var yy = parts[0], mm = parts[1], dd = parts[2];
+    var yyyy = (yy.length === 2) ? ("20" + yy) : yy;
+    return yyyy + "-" + mm + "-" + dd;
+  }
+
+  var allThumbs = []; // { img, index }
+  var io = null;
+
+  function getObserver() {
+    if (io) { return io; }
+    if (!("IntersectionObserver" in window)) { return null; }
+    io = new IntersectionObserver(function (entries) {
+      entries.forEach(function (entry) {
+        if (!entry.isIntersecting) { return; }
+        var img = entry.target;
+        var src = img.getAttribute("data-src");
+        if (src) {
+          img.src = src;
+          img.removeAttribute("data-src");
+        }
+        io.unobserve(img);
+      });
+    }, { rootMargin: "300px 0px" });
+    return io;
+  }
+
+  function buildThumb(index, dateRaw, aspect) {
+    var btn = document.createElement("button");
+    btn.className = "thumb";
+    btn.type = "button";
+    btn.setAttribute("data-index", String(index));
+
+    var frame = document.createElement("span");
+    frame.className = "frame";
+    var ratio = (aspect && aspect > 0) ? aspect : 1.7778;
+    frame.style.aspectRatio = String(ratio);
+
+    var img = document.createElement("img");
+    img.setAttribute("data-src", photoPath(index));
+    img.loading = "lazy";
+    img.alt = "photo " + (index + 1);
+    img.addEventListener("load", function () {
+      img.classList.add("loaded");
+    });
+    frame.appendChild(img);
+    btn.appendChild(frame);
+
+    var dateLabel = formatDate(dateRaw);
+    if (dateLabel) {
+      var dateEl = document.createElement("span");
+      dateEl.className = "date";
+      dateEl.textContent = dateLabel;
+      btn.appendChild(dateEl);
+    }
+
+    btn.addEventListener("click", function () {
+      openLightbox(index);
+    });
+
+    var observer = getObserver();
+    if (observer) {
+      observer.observe(img);
+    } else {
+      img.src = img.getAttribute("data-src");
+      img.removeAttribute("data-src");
+    }
+
+    allThumbs.push({ el: btn, index: index });
+    return btn;
+  }
+
+  function render(manifest) {
+    var total = manifest.total || 0;
+    var dates = manifest.dates || [];
+    var aspects = manifest.aspect || [];
+    var months = manifest.months || [];
+
+    if (!total) {
+      STATUS.textContent = "표시할 사진이 없습니다.";
+      return;
+    }
+
+    STATUS.textContent = "";
+
+    if (months.length > 0) {
+      months.forEach(function (month) {
+        var section = document.createElement("section");
+        section.className = "month-section";
+
+        var h2 = document.createElement("h2");
+        h2.textContent = month.id + " (" + month.count + "장)";
+        section.appendChild(h2);
+
+        var grid = document.createElement("div");
+        grid.className = "grid";
+        for (var i = month.start; i < month.start + month.count && i < total; i++) {
+          grid.appendChild(buildThumb(i, dates[i], aspects[i]));
+        }
+        section.appendChild(grid);
+        APP.appendChild(section);
+      });
+    } else {
+      var grid = document.createElement("div");
+      grid.className = "grid";
+      for (var i = 0; i < total; i++) {
+        grid.appendChild(buildThumb(i, dates[i], aspects[i]));
+      }
+      APP.appendChild(grid);
+    }
+  }
+
+  // ---- lightbox ----
+  var lightbox = document.getElementById("lightbox");
+  var lbImg = document.getElementById("lbImg");
+  var lbCaption = document.getElementById("lbCaption");
+  var lbClose = document.getElementById("lbClose");
+  var lbPrev = document.getElementById("lbPrev");
+  var lbNext = document.getElementById("lbNext");
+
+  var manifestRef = null;
+  var currentIndex = -1;
+
+  function showIndex(index) {
+    if (index < 0 || index >= (manifestRef ? manifestRef.total : 0)) { return; }
+    currentIndex = index;
+    lbImg.src = photoPath(index);
+    lbImg.alt = "photo " + (index + 1);
+    var dateLabel = formatDate(manifestRef.dates ? manifestRef.dates[index] : null);
+    lbCaption.textContent = "#" + (index + 1) + (dateLabel ? " · " + dateLabel : "");
+  }
+
+  function openLightbox(index) {
+    showIndex(index);
+    lightbox.classList.add("open");
+    document.body.style.overflow = "hidden";
+  }
+
+  function closeLightbox() {
+    lightbox.classList.remove("open");
+    lbImg.src = "";
+    document.body.style.overflow = "";
+  }
+
+  function step(delta) {
+    if (currentIndex < 0) { return; }
+    showIndex(currentIndex + delta);
+  }
+
+  lbClose.addEventListener("click", closeLightbox);
+  lbPrev.addEventListener("click", function () { step(-1); });
+  lbNext.addEventListener("click", function () { step(1); });
+  lightbox.addEventListener("click", function (e) {
+    if (e.target === lightbox) { closeLightbox(); }
+  });
+  document.addEventListener("keydown", function (e) {
+    if (!lightbox.classList.contains("open")) { return; }
+    if (e.key === "Escape") { closeLightbox(); }
+    else if (e.key === "ArrowLeft") { step(-1); }
+    else if (e.key === "ArrowRight") { step(1); }
+  });
+
+  // ---- load manifest ----
+  fetch("manifest.json")
+    .then(function (res) {
+      if (!res.ok) { throw new Error("manifest.json fetch failed: " + res.status); }
+      return res.json();
+    })
+    .then(function (manifest) {
+      manifestRef = manifest;
+      render(manifest);
+    })
+    .catch(function (err) {
+      STATUS.textContent = "manifest.json을 불러오지 못했습니다: " + err.message;
+    });
+})();
+</script>
+</body>
+</html>
